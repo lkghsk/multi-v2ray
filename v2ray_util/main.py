@@ -7,7 +7,7 @@ import pkg_resources
 from .util_core.v2ray import V2ray
 from .util_core.utils import ColorStr, open_port
 from .global_setting import stats_ctr, iptables_ctr, ban_bt, update_timer
-from .config_modify import base, multiple, ss, stream, tls
+from .config_modify import base, multiple, ss, stream, tls, cdn
 
 def loop_input_choice_number(input_tip, number_max):
     """
@@ -51,6 +51,7 @@ def help():
     tls                  修改tls
     tfo                  修改tcpFastOpen
     stream               修改传输协议
+    cdn                  走cdn
     stats                iptables流量统计
     clean                清理日志
     log                  查看日志
@@ -74,6 +75,7 @@ def help():
     tls                  modify tls
     tfo                  modify tcpFastOpen
     stream               modify protocol
+    cdn                  cdn mode
     stats                iptables traffic statistics
     clean                clean v2ray log
     log                  check v2ray log
@@ -89,9 +91,9 @@ def parse_arg():
             V2ray.stop()
         elif sys.argv[1] == "restart":
             V2ray.restart()
-        elif sys.argv[1] == "-h" or sys.argv[1] == "--help":
+        elif sys.argv[1] in ("-h", "--help"):
             help()
-        elif sys.argv[1] == "-v" or sys.argv[1] == "--version":
+        elif sys.argv[1] in ("-v", "--version"):
             V2ray.version()
         elif sys.argv[1] == "status":
             V2ray.status()
@@ -99,28 +101,20 @@ def parse_arg():
             V2ray.info()
         elif sys.argv[1] == "port":
             base.port()
-            open_port()
-            V2ray.restart()
         elif sys.argv[1] == "tls":
             tls.modify()
-            V2ray.restart()
         elif sys.argv[1] == "tfo":
             base.tfo()
-            V2ray.restart()
         elif sys.argv[1] == "stream":
             stream.modify()
-            V2ray.restart()
         elif sys.argv[1] == "stats":
             iptables_ctr.manage()
         elif sys.argv[1] == "clean":
             V2ray.cleanLog()
         elif sys.argv[1] == "del":
             multiple.del_port()
-            V2ray.restart()
         elif sys.argv[1] == "add":
             multiple.new_port()
-            open_port()
-            V2ray.restart()
         elif sys.argv[1] == "update":
             V2ray.update()
         elif sys.argv[1] == "new":
@@ -129,10 +123,11 @@ def parse_arg():
             V2ray.convert()
         elif sys.argv[1] == "log":
             V2ray.log()
+        elif sys.argv[1] == "cdn":
+            cdn.modify()
     else:
         if sys.argv[1] == "add":
             multiple.new_port(sys.argv[2])
-            V2ray.restart()
     sys.exit(0)
 
 def service_manage():
@@ -169,11 +164,10 @@ def user_manage():
         multiple.del_user()
     elif choice == 4:
         multiple.del_port()
-    V2ray.restart()
 
 def profile_alter():
     show_text = (_("modify email"), _("modify UUID"), _("modify alterID"), _("modify port"), _("modify stream"), _("modify tls"), 
-                _("modify tcpFastOpen"), _("modify dyn_port"), _("modify shadowsocks method"), _("modify shadowsocks password"))
+                _("modify tcpFastOpen"), _("modify dyn_port"), _("modify shadowsocks method"), _("modify shadowsocks password"), _("CDN mode(need domain)"))
     print("")
     for index, text in enumerate(show_text): 
         print("{}.{}".format(index + 1, text))
@@ -188,7 +182,6 @@ def profile_alter():
         base.alterid()
     elif choice == 4:
         base.port()
-        open_port()
     elif choice == 5:
         stream.modify()
     elif choice == 6:
@@ -201,7 +194,8 @@ def profile_alter():
         ss.modify('method')
     elif choice == 10:
         ss.modify('password')
-    V2ray.restart()
+    elif choice == 11:
+        cdn.modify()
 
 def global_setting():
     show_text = (_("V2ray Traffic Statistics"), _("Iptables Traffic Statistics"), _("Ban Bittorrent"), _("Schedule Update V2ray"), _("Clean Log"), _("Change Language"))
@@ -215,7 +209,6 @@ def global_setting():
         iptables_ctr.manage()
     elif choice == 3:
         ban_bt.manage()
-        V2ray.restart()
     elif choice == 4:
         update_timer.manage()
     elif choice == 5:
