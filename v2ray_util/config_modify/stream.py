@@ -67,9 +67,9 @@ class StreamModifier:
         sw.write(**kw)
 
     def random_kcp(self):
-        kcp_list = ('mKCP + srtp', 'mKCP + utp', 'mKCP + wechat-video', 'mKCP + dtls')
-        choice = random.randint(4, 7)
-        print("{}: {} \n".format(_("random generate (srtp | wechat-video | utp | dtls) fake header, new protocol"), ColorStr.green(kcp_list[choice - 4])))
+        kcp_list = ('mKCP + srtp', 'mKCP + utp', 'mKCP + wechat-video', 'mKCP + dtls', 'mKCP + wireguard')
+        choice = random.randint(4, 8)
+        print("{}: {} \n".format(_("random generate (srtp | wechat-video | utp | dtls | wireguard) fake header, new protocol"), ColorStr.green(kcp_list[choice - 4])))
         self.select(choice)
 
 @restart()
@@ -83,11 +83,12 @@ def modify():
         sm = StreamModifier(group.tag, group.index)
 
         print("{}: {}".format(_("group protocol"), group.node_list[0].stream()))
-        print ("")
+        print("")
         for index, stream_type in enumerate(sm.stream_type):
             print("{0}.{1}".format(index + 1, stream_type[1]))
 
-        choice = input()
+        print("")
+        choice = input(_("please select new protocol: "))
 
         if not choice.isdecimal():
             print(_("please input number!"))

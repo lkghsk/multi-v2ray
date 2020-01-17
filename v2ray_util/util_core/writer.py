@@ -7,7 +7,7 @@ import string
 import uuid
 
 from .config import Config
-from .utils import port_is_use, StreamType
+from .utils import port_is_use, StreamType, random_port
 from .loader import Loader
 from .group import Mtproto, Vmess, Socks
 
@@ -62,12 +62,10 @@ class Writer:
             template = json.load(stream_file)
         return template
 
-    def save(self, need_domain=False):
+    def save(self):
         '''
         save v2ray config.json
         '''
-        if not need_domain and "domain" in self.part_json:
-            del self.part_json["domain"]
         json_dump=json.dumps(self.config, indent=2)
         with open(self.path, 'w') as writer:
             writer.writelines(json_dump)
@@ -201,7 +199,8 @@ class StreamWriter(Writer):
             ws = self.load_template('ws.json')
             salt = '/' + ''.join(random.sample(string.ascii_letters + string.digits, 8)) + '/'
             ws["wsSettings"]["path"] = salt
-            ws["wsSettings"]["headers"]["Host"] = kw['host']
+            if "host" in kw:
+                ws["wsSettings"]["headers"]["Host"] = kw['host']
             self.part_json["streamSettings"] = ws
 
         elif self.stream_type == StreamType.H2:
@@ -235,8 +234,11 @@ class GroupWriter(Writer):
         self.save()
 
     def write_domain(self, domain=''):
-        self.part_json["domain"] = domain
-        self.save(need_domain=True)
+        if domain:
+            self.part_json["domain"] = domain
+        elif "domain" in self.part_json:
+            del self.part_json["domain"]
+        self.save()
 
     def write_ss_password(self, new_password):
         self.part_json["settings"]["password"] = str(new_password)
@@ -283,7 +285,7 @@ class GroupWriter(Writer):
             self.part_json["streamSettings"]["security"] = "tls"
             self.part_json["streamSettings"]["tlsSettings"] = tls_settings
             self.part_json["domain"] = domain
-            self.save(need_domain=True)
+            self.save()
         else:
             if self.part_json["streamSettings"]["network"] == StreamType.H2.value:
                 print(_("close tls will also close HTTP/2!"))
@@ -397,11 +399,7 @@ class GlobalWriter(Writer):
             dokodemo_door = stats_json["dokodemoDoor"]
             del stats_json["dokodemoDoor"]
             #产生随机dokodemo_door的连接端口
-            while True:
-                random_port = random.randint(1000, 65535)
-                if not port_is_use(random_port):
-                    break
-            dokodemo_door["port"] = random_port
+            dokodemo_door["port"] = random_port(1000, 65535)
 
             has_door = False
             for inbound in self.config["inbounds"]:

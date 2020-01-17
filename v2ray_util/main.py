@@ -1,32 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 import sys
 import subprocess
 import pkg_resources
 
 from .util_core.v2ray import V2ray
-from .util_core.utils import ColorStr, open_port
+from .util_core.utils import ColorStr, open_port, loop_input_choice_number
 from .global_setting import stats_ctr, iptables_ctr, ban_bt, update_timer
 from .config_modify import base, multiple, ss, stream, tls, cdn
-
-def loop_input_choice_number(input_tip, number_max):
-    """
-    循环输入选择的序号,直到符合规定为止
-    """
-    while True:
-        print("")
-        choice = input(input_tip)
-        if not choice:
-            break
-        if choice.isnumeric():
-            choice = int(choice)
-        else:
-            print(ColorStr.red(_("input error, please input again")))
-            continue
-        if (choice <= number_max and choice > 0):
-            return choice
-        else:
-            print(ColorStr.red(_("input error, please input again")))
 
 def help():
     exec_name = sys.argv[0]
@@ -43,7 +25,8 @@ def help():
     status               查看 V2Ray 运行状态
     new                  重建新的v2ray json配置文件
     update               更新 V2Ray 到最新Release版本
-    add                  新增mkcp + 随机一种 (srtp | wechat-video | utp | dtls) header伪装的端口(Group)
+    update.sh            更新 multi-v2ray 到最新版本
+    add                  新增mkcp + 随机一种 (srtp|wechat-video|utp|dtls|wireguard) header伪装的端口(Group)
     add [wechat|utp|srtp|dtls|wireguard|socks|mtproto|ss]     新增一种协议的组，端口随机,如 v2ray add utp 为新增utp协议
     del                  删除端口组
     info                 查看配置
@@ -52,7 +35,8 @@ def help():
     tfo                  修改tcpFastOpen
     stream               修改传输协议
     cdn                  走cdn
-    stats                iptables流量统计
+    stats                v2ray流量统计
+    iptables             iptables流量统计
     clean                清理日志
     log                  查看日志
         """.format(exec_name[exec_name.rfind("/") + 1:]))
@@ -67,7 +51,8 @@ def help():
     status               check V2Ray status
     new                  create new json profile
     update               update v2ray to latest
-    add                  random create mkcp + (srtp | wechat-video | utp | dtls) fake header group
+    update.sh            update multi-v2ray to latest
+    add                  random create mkcp + (srtp|wechat-video|utp|dtls|wireguard) fake header group
     add [wechat|utp|srtp|dtls|wireguard|socks|mtproto|ss]     create special protocol, random new port
     del                  delete port group
     info                 check v2ray profile
@@ -76,10 +61,18 @@ def help():
     tfo                  modify tcpFastOpen
     stream               modify protocol
     cdn                  cdn mode
-    stats                iptables traffic statistics
+    stats                v2ray traffic statistics
+    iptables             iptables traffic statistics
     clean                clean v2ray log
     log                  check v2ray log
         """.format(exec_name[exec_name.rfind("/") + 1:]))
+
+def updateSh():
+    if os.path.exists("/.dockerenv"):
+        subprocess.Popen("pip install -U v2ray_util", shell=True).wait()
+    else:
+        subprocess.Popen("curl -Ls https://multi.netlify.com/v2ray.sh -o temp.sh", shell=True).wait()
+        subprocess.Popen("bash temp.sh -k && rm -f temp.sh", shell=True).wait()
 
 def parse_arg():
     if len(sys.argv) == 1:
@@ -108,6 +101,8 @@ def parse_arg():
         elif sys.argv[1] == "stream":
             stream.modify()
         elif sys.argv[1] == "stats":
+            stats_ctr.manage()
+        elif sys.argv[1] == "iptables":
             iptables_ctr.manage()
         elif sys.argv[1] == "clean":
             V2ray.cleanLog()
@@ -117,6 +112,8 @@ def parse_arg():
             multiple.new_port()
         elif sys.argv[1] == "update":
             V2ray.update()
+        elif sys.argv[1] == "update.sh":
+            updateSh()
         elif sys.argv[1] == "new":
             V2ray.new()
         elif sys.argv[1] == "convert":
